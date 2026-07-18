@@ -74,12 +74,12 @@
   - ✅ 대회 생성, 참가 신청/승인, 참가 등록 마감 Server Action 구현 (F004, F005)
   - ✅ Playwright MCP로 "대회 생성 → 참가 신청 → 등록 마감" E2E 테스트
 
-- **Task 007: 대진표 생성 및 경기 진행 엔진 구현**
-  - `matches`, `match_games` 테이블 및 RLS 구현
-  - `lib/tournament/bracket.ts`에 풀리그(서클법) 대진표 생성 로직 구현 (F006)
-  - 점수 입력 UI 및 `record_match_result` RPC로 승패 자동 판정 구현 (F007)
-  - 싱글 엘리미네이션 대진표 생성 및 승자 다음 라운드 자동 배정 구현 (F006, F008)
-  - Playwright MCP로 "대진표 생성 → 점수 입력 → 라운드 진행 → 대회 완료" E2E 테스트
+- **Task 007: 대진표 생성 및 경기 진행 엔진 구현** ✅ - 완료
+  - ✅ `matches`, `match_games` 테이블 및 RLS 구현
+  - ✅ `lib/tournament/bracket.ts`에 풀리그(서클법) 대진표 생성 로직 구현 (F006)
+  - ✅ 점수 입력 UI 및 `record_match_result` RPC로 승패 자동 판정 구현 (F007)
+  - ✅ 싱글 엘리미네이션 대진표 생성 및 승자 다음 라운드 자동 배정 구현 (F006, F008)
+  - ✅ Playwright MCP로 "대진표 생성 → 점수 입력 → 라운드 진행 → 대회 완료" E2E 테스트
 
 - **Task 008: ELO 랭킹 엔진 구현**
   - `club_ratings`, `rating_history` 테이블 및 RLS 구현
@@ -111,4 +111,4 @@
 ---
 
 **📅 최종 업데이트**: 2026-07-18
-**📊 진행 상황**: Phase 3 진행 중 (6/11 Tasks 완료)
+**📊 진행 상황**: Phase 3 진행 중 (7/11 Tasks 완료)
