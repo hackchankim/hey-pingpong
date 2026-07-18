@@ -81,11 +81,11 @@
   - ✅ 싱글 엘리미네이션 대진표 생성 및 승자 다음 라운드 자동 배정 구현 (F006, F008)
   - ✅ Playwright MCP로 "대진표 생성 → 점수 입력 → 라운드 진행 → 대회 완료" E2E 테스트
 
-- **Task 008: ELO 랭킹 엔진 구현**
-  - `club_ratings`, `rating_history` 테이블 및 RLS 구현
-  - `lib/rating/elo.ts` ELO 계산 로직 구현 및 `record_match_result`에 통합 (F009)
-  - 랭킹 페이지에 실제 순위표/레이팅 추이 데이터 연동 (F010)
-  - Playwright MCP로 "경기 완료 → 레이팅 갱신 → 랭킹 페이지 반영" E2E 테스트
+- **Task 008: ELO 랭킹 엔진 구현** ✅ - 완료
+  - ✅ `club_ratings`, `rating_history` 테이블 및 RLS 구현
+  - ✅ `lib/rating/elo.ts` ELO 계산 로직 구현 및 `record_match_result`에 통합 (F009)
+  - ✅ 랭킹 페이지에 실제 순위표/레이팅 추이 데이터 연동 (F010)
+  - ✅ Playwright MCP로 "경기 완료 → 레이팅 갱신 → 랭킹 페이지 반영" E2E 테스트
 
 - **Task 008-1: 핵심 기능 통합 테스트**
   - Playwright MCP로 전체 사용자 플로우(회원가입 → 클럽 생성/가입 → 대회 생성/참가 → 대진표 진행 → 랭킹 확인) 테스트
@@ -111,4 +111,4 @@
 ---
 
 **📅 최종 업데이트**: 2026-07-18
-**📊 진행 상황**: Phase 3 진행 중 (7/11 Tasks 완료)
+**📊 진행 상황**: Phase 3 진행 중 (8/11 Tasks 완료)
