@@ -63,16 +63,16 @@
 
 ### Phase 3: 핵심 기능 구현
 
-- **Task 005: 클럽(구장) 도메인 백엔드 구현** - 우선순위
-  - `clubs`, `club_members` 테이블 및 RLS 마이그레이션 적용 (Supabase MCP `apply_migration`)
-  - 클럽 생성, 초대코드 발급, 초대코드로 가입 Server Action + `join_club_with_code` RPC 구현 (F001, F002)
-  - 멤버 목록 조회 및 역할(관리자/일반 멤버) 변경 기능 구현 (F003)
-  - Playwright MCP로 "클럽 생성 → 다른 계정으로 초대코드 가입 → 멤버 관리" E2E 테스트
+- **Task 005: 클럽(구장) 도메인 백엔드 구현** ✅ - 완료
+  - ✅ `clubs`, `club_members` 테이블 및 RLS 마이그레이션 적용 (Supabase MCP `apply_migration`)
+  - ✅ 클럽 생성, 초대코드 발급, 초대코드로 가입 Server Action + `join_club_with_code` RPC 구현 (F001, F002)
+  - ✅ 멤버 목록 조회 및 역할(관리자/일반 멤버) 변경 기능 구현 (F003)
+  - ✅ Playwright MCP로 "클럽 생성 → 다른 계정으로 초대코드 가입 → 멤버 관리" E2E 테스트
 
-- **Task 006: 대회/참가자 도메인 백엔드 구현**
-  - `tournaments`, `tournament_participants` 테이블 및 RLS 구현
-  - 대회 생성, 참가 신청/승인, 참가 등록 마감 Server Action 구현 (F004, F005)
-  - Playwright MCP로 "대회 생성 → 참가 신청 → 등록 마감" E2E 테스트
+- **Task 006: 대회/참가자 도메인 백엔드 구현** ✅ - 완료
+  - ✅ `tournaments`, `tournament_participants` 테이블 및 RLS 구현
+  - ✅ 대회 생성, 참가 신청/승인, 참가 등록 마감 Server Action 구현 (F004, F005)
+  - ✅ Playwright MCP로 "대회 생성 → 참가 신청 → 등록 마감" E2E 테스트
 
 - **Task 007: 대진표 생성 및 경기 진행 엔진 구현**
   - `matches`, `match_games` 테이블 및 RLS 구현
@@ -111,4 +111,4 @@
 ---
 
 **📅 최종 업데이트**: 2026-07-18
-**📊 진행 상황**: Phase 3 대기 중 (4/11 Tasks 완료)
+**📊 진행 상황**: Phase 3 진행 중 (6/11 Tasks 완료)
