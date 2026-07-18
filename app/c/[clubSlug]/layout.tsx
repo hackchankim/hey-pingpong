@@ -25,7 +25,7 @@ async function ClubLayoutContent({
   }
 
   return (
-    <div className="flex-1 w-full flex flex-col gap-6">
+    <div className="flex-1 w-full max-w-5xl flex flex-col gap-6 p-5">
       <ClubNav clubSlug={clubSlug} />
       <div className="flex-1 flex flex-col gap-6">{children}</div>
     </div>
@@ -40,8 +40,10 @@ export default function ClubLayout({
   params: Promise<{ clubSlug: string }>;
 }) {
   return (
-    <Suspense>
-      <ClubLayoutContent params={params}>{children}</ClubLayoutContent>
-    </Suspense>
+    <main className="min-h-screen flex flex-col items-center">
+      <Suspense>
+        <ClubLayoutContent params={params}>{children}</ClubLayoutContent>
+      </Suspense>
+    </main>
   );
 }
