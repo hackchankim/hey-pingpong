@@ -47,3 +47,6 @@ next-env.d.ts
 #shrimp
 /shrimp_data/
 /shrimp_data/*
+
+#supabase
+supabase/.temp/
