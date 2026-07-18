@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,7 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { dummyClubMembers, dummyUserNames, findClubBySlug } from "@/lib/dummy-data";
+import { MemberActions } from "@/components/member-actions";
+import { createClient } from "@/lib/supabase/server";
 import type { ClubRole, MemberStatus } from "@/lib/types/domain";
 
 /** 클럽 내 역할(role)을 한글 라벨 + 배지 스타일로 변환 */
@@ -45,9 +48,35 @@ export default async function ClubMembersPage({
   params: Promise<{ clubSlug: string }>;
 }) {
   const { clubSlug } = await params;
-  const club = findClubBySlug(clubSlug);
 
-  const members = dummyClubMembers.filter((member) => member.club_id === club.id);
+  const supabase = await createClient();
+
+  // RLS(clubs_select_member)가 비멤버의 조회를 자동 차단하므로, 여기서 club이 없다면
+  // "존재하지 않음"과 "권한 없음"을 굳이 구분하지 않고 404로 처리한다.
+  const { data: club } = await supabase
+    .from("clubs")
+    .select("*")
+    .eq("slug", clubSlug)
+    .single();
+
+  if (!club) {
+    notFound();
+  }
+
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const currentUserId = claimsData?.claims?.sub;
+
+  const { data: members } = await supabase
+    .from("club_members")
+    .select("*, profiles(id, full_name, username)")
+    .eq("club_id", club.id)
+    .order("joined_at", { ascending: true });
+
+  const currentMembership = members?.find(
+    (member) => member.user_id === currentUserId,
+  );
+  const isAdmin =
+    currentMembership?.role === "owner" || currentMembership?.role === "admin";
 
   return (
     <div className="flex flex-col gap-8">
@@ -58,7 +87,7 @@ export default async function ClubMembersPage({
         </p>
       </div>
 
-      {members.length === 0 ? (
+      {!members || members.length === 0 ? (
         <p className="text-sm text-muted-foreground">아직 멤버가 없습니다.</p>
       ) : (
         <div className="overflow-x-auto rounded-md border">
@@ -69,11 +98,15 @@ export default async function ClubMembersPage({
                 <TableHead>역할</TableHead>
                 <TableHead>상태</TableHead>
                 <TableHead className="text-right">가입일</TableHead>
+                {isAdmin && <TableHead className="text-right">관리</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {members.map((member) => {
-                const name = dummyUserNames[member.user_id] ?? "알 수 없음";
+                const name =
+                  member.profiles?.full_name ??
+                  member.profiles?.username ??
+                  "알 수 없음";
                 const roleMeta = ROLE_META[member.role];
                 const statusMeta = STATUS_META[member.status];
 
@@ -100,6 +133,21 @@ export default async function ClubMembersPage({
                     <TableCell className="text-right text-muted-foreground">
                       {new Date(member.joined_at).toLocaleDateString("ko-KR")}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        {member.role === "owner" ? (
+                          <span className="text-xs text-muted-foreground">
+                            클럽 소유자
+                          </span>
+                        ) : (
+                          <MemberActions
+                            clubId={club.id}
+                            memberId={member.id}
+                            role={member.role}
+                          />
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}

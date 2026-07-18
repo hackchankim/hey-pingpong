@@ -42,9 +42,14 @@ export interface JoinClubWithCodeInput {
   invite_code: string
 }
 
+/**
+ * join_club_with_code RPC는 "코드가 없음"과 "코드가 비활성화됨"을 구분하지 않고
+ * 항상 invalid_code로 응답한다(존재 여부를 굳이 구분하지 않는 편이 보안상 안전하다는
+ * 의도적 설계) — 따라서 code_disabled는 별도 값으로 두지 않는다.
+ */
 export type JoinClubWithCodeResult =
   | { success: true; club: Club; membership: ClubMember }
-  | { success: false; error: "invalid_code" | "code_disabled" | "already_member" | "banned" }
+  | { success: false; error: "invalid_code" | "already_member" | "banned" }
 
 // ---------------------------------------------------------------------------
 // 대회 생성 (F004)

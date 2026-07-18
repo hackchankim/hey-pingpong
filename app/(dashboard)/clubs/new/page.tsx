@@ -5,9 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CreateClubForm } from "@/components/create-club-form";
 
 export default function NewClubPage() {
   return (
@@ -23,26 +21,11 @@ export default function NewClubPage() {
         <CardHeader>
           <CardTitle>클럽 정보</CardTitle>
           <CardDescription>
-            클럽 이름과 소개를 입력해주세요.
+            클럽 이름과 URL, 소개를 입력해주세요.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="club-name">클럽 이름</Label>
-              <Input id="club-name" placeholder="예: 강남 탁구 동호회" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="club-description">클럽 소개</Label>
-              <Input
-                id="club-description"
-                placeholder="클럽에 대한 간단한 소개를 입력해주세요"
-              />
-            </div>
-            <Button type="button" disabled className="w-fit">
-              생성하기
-            </Button>
-          </form>
+          <CreateClubForm />
         </CardContent>
       </Card>
     </div>

@@ -5,9 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { JoinClubForm } from "@/components/join-club-form";
 
 export default function JoinClubPage() {
   return (
@@ -27,15 +25,7 @@ export default function JoinClubPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="invite-code">초대 코드</Label>
-              <Input id="invite-code" placeholder="예: ABCD1234" />
-            </div>
-            <Button type="button" disabled className="w-fit">
-              가입하기
-            </Button>
-          </form>
+          <JoinClubForm />
         </CardContent>
       </Card>
     </div>
