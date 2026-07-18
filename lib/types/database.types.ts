@@ -109,6 +109,167 @@ export type Database = {
           },
         ]
       }
+      match_games: {
+        Row: {
+          club_id: string
+          created_at: string
+          game_number: number
+          id: string
+          match_id: string
+          player1_score: number
+          player2_score: number
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          game_number: number
+          id?: string
+          match_id: string
+          player1_score: number
+          player2_score: number
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          game_number?: number
+          id?: string
+          match_id?: string
+          player1_score?: number
+          player2_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_games_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_games_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          bracket: Database["public"]["Enums"]["match_bracket"]
+          club_id: string
+          court_label: string | null
+          created_at: string
+          id: string
+          is_bye: boolean
+          match_number: number
+          player1_games_won: number
+          player1_id: string | null
+          player1_source_match_id: string | null
+          player2_games_won: number
+          player2_id: string | null
+          player2_source_match_id: string | null
+          round: number
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["match_status"]
+          tournament_id: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          bracket?: Database["public"]["Enums"]["match_bracket"]
+          club_id: string
+          court_label?: string | null
+          created_at?: string
+          id?: string
+          is_bye?: boolean
+          match_number: number
+          player1_games_won?: number
+          player1_id?: string | null
+          player1_source_match_id?: string | null
+          player2_games_won?: number
+          player2_id?: string | null
+          player2_source_match_id?: string | null
+          round: number
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["match_status"]
+          tournament_id: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          bracket?: Database["public"]["Enums"]["match_bracket"]
+          club_id?: string
+          court_label?: string | null
+          created_at?: string
+          id?: string
+          is_bye?: boolean
+          match_number?: number
+          player1_games_won?: number
+          player1_id?: string | null
+          player1_source_match_id?: string | null
+          player2_games_won?: number
+          player2_id?: string | null
+          player2_source_match_id?: string | null
+          round?: number
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["match_status"]
+          tournament_id?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_player1_source_match_id_fkey"
+            columns: ["player1_source_match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_player2_id_fkey"
+            columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_player2_source_match_id_fkey"
+            columns: ["player2_source_match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -272,12 +433,31 @@ export type Database = {
         Args: { p_description?: string; p_name: string; p_slug: string }
         Returns: Json
       }
+      create_tournament_matches: {
+        Args: { p_matches: Json; p_tournament_id: string }
+        Returns: undefined
+      }
       is_club_admin: { Args: { target_club_id: string }; Returns: boolean }
       is_club_member: { Args: { target_club_id: string }; Returns: boolean }
       join_club_with_code: { Args: { p_invite_code: string }; Returns: Json }
+      record_match_result: {
+        Args: {
+          p_games: Json
+          p_match_id: string
+          p_walkover_winner_id?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       club_role: "owner" | "admin" | "member"
+      match_bracket: "main" | "winners" | "losers"
+      match_status:
+        | "pending"
+        | "ready"
+        | "in_progress"
+        | "completed"
+        | "walkover"
       member_status: "active" | "banned"
       participant_status:
         | "pending"
@@ -423,6 +603,14 @@ export const Constants = {
   public: {
     Enums: {
       club_role: ["owner", "admin", "member"],
+      match_bracket: ["main", "winners", "losers"],
+      match_status: [
+        "pending",
+        "ready",
+        "in_progress",
+        "completed",
+        "walkover",
+      ],
       member_status: ["active", "banned"],
       participant_status: [
         "pending",
@@ -467,3 +655,11 @@ export type TournamentUpdate = TablesUpdate<"tournaments">
 export type TournamentParticipant = Tables<"tournament_participants">
 export type TournamentParticipantInsert = TablesInsert<"tournament_participants">
 export type TournamentParticipantUpdate = TablesUpdate<"tournament_participants">
+
+export type Match = Tables<"matches">
+export type MatchInsert = TablesInsert<"matches">
+export type MatchUpdate = TablesUpdate<"matches">
+
+export type MatchGame = Tables<"match_games">
+export type MatchGameInsert = TablesInsert<"match_games">
+export type MatchGameUpdate = TablesUpdate<"match_games">
