@@ -74,8 +74,8 @@
 
 스키마를 바꿀 때는 **아래를 한 작업에서 모두** 수행한다.
 
-1. `supabase/migrations/<타임스탬프>_<이름>.sql` 마이그레이션 작성·적용 (Supabase MCP `apply_migration` 사용, `project_ref=cjtizajruhtqbrvzdlzw`).
-2. 타입 재생성: `npx supabase gen types typescript --project-id cjtizajruhtqbrvzdlzw > lib/types/database.types.ts` (또는 Supabase MCP `generate_typescript_types`).
+1. `supabase/migrations/<타임스탬프>_<이름>.sql` 마이그레이션 작성·적용 (Supabase MCP `apply_migration` 사용, `project_ref=jxbcegkbuznwwcajoqdz`).
+2. 타입 재생성: `npx supabase gen types typescript --project-id jxbcegkbuznwwcajoqdz > lib/types/database.types.ts` (또는 Supabase MCP `generate_typescript_types`).
 3. 필요한 편의 타입(`Profile`/`ProfileInsert`/`ProfileUpdate`와 같은 형태로 `Club`/`Tournament`/`Match` 등)을 `lib/types/database.types.ts` 하단에 추가.
 
 - ❌ **`lib/types/database.types.ts`를 손으로 편집 금지** — 반드시 재생성한다. (편의 타입 export 블록만 예외적으로 유지·추가)
