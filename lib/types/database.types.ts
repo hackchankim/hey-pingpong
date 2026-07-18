@@ -145,17 +145,156 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_participants: {
+        Row: {
+          club_id: string
+          created_at: string
+          final_rank: number | null
+          id: string
+          rating_at_registration: number | null
+          seed: number | null
+          status: Database["public"]["Enums"]["participant_status"]
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          final_rank?: number | null
+          id?: string
+          rating_at_registration?: number | null
+          seed?: number | null
+          status?: Database["public"]["Enums"]["participant_status"]
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          final_rank?: number | null
+          id?: string
+          rating_at_registration?: number | null
+          seed?: number | null
+          status?: Database["public"]["Enums"]["participant_status"]
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          club_id: string
+          created_at: string
+          created_by: string
+          format: Database["public"]["Enums"]["tournament_format"]
+          id: string
+          max_participants: number | null
+          name: string
+          registration_deadline: string | null
+          ruleset: Json | null
+          starts_at: string | null
+          status: Database["public"]["Enums"]["tournament_status"]
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          created_by: string
+          format: Database["public"]["Enums"]["tournament_format"]
+          id?: string
+          max_participants?: number | null
+          name: string
+          registration_deadline?: string | null
+          ruleset?: Json | null
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["tournament_status"]
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          created_by?: string
+          format?: Database["public"]["Enums"]["tournament_format"]
+          id?: string
+          max_participants?: number | null
+          name?: string
+          registration_deadline?: string | null
+          ruleset?: Json | null
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["tournament_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      create_club: {
+        Args: { p_description?: string; p_name: string; p_slug: string }
+        Returns: Json
+      }
       is_club_admin: { Args: { target_club_id: string }; Returns: boolean }
       is_club_member: { Args: { target_club_id: string }; Returns: boolean }
+      join_club_with_code: { Args: { p_invite_code: string }; Returns: Json }
     }
     Enums: {
       club_role: "owner" | "admin" | "member"
       member_status: "active" | "banned"
+      participant_status:
+        | "pending"
+        | "registered"
+        | "checked_in"
+        | "withdrawn"
+        | "disqualified"
+      tournament_format:
+        | "round_robin"
+        | "single_elimination"
+        | "double_elimination"
+      tournament_status:
+        | "draft"
+        | "registration_open"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -285,6 +424,25 @@ export const Constants = {
     Enums: {
       club_role: ["owner", "admin", "member"],
       member_status: ["active", "banned"],
+      participant_status: [
+        "pending",
+        "registered",
+        "checked_in",
+        "withdrawn",
+        "disqualified",
+      ],
+      tournament_format: [
+        "round_robin",
+        "single_elimination",
+        "double_elimination",
+      ],
+      tournament_status: [
+        "draft",
+        "registration_open",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
     },
   },
 } as const
@@ -301,3 +459,11 @@ export type ClubUpdate = TablesUpdate<"clubs">
 export type ClubMember = Tables<"club_members">
 export type ClubMemberInsert = TablesInsert<"club_members">
 export type ClubMemberUpdate = TablesUpdate<"club_members">
+
+export type Tournament = Tables<"tournaments">
+export type TournamentInsert = TablesInsert<"tournaments">
+export type TournamentUpdate = TablesUpdate<"tournaments">
+
+export type TournamentParticipant = Tables<"tournament_participants">
+export type TournamentParticipantInsert = TablesInsert<"tournament_participants">
+export type TournamentParticipantUpdate = TablesUpdate<"tournament_participants">

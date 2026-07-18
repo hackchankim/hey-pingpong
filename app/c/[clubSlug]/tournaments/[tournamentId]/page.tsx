@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
+import { CloseRegistrationButton } from "@/components/close-registration-button";
+import { ParticipantAdminPanel } from "@/components/participant-admin-panel";
 import { ParticipantList } from "@/components/participant-list";
+import { TournamentRegistrationAction } from "@/components/tournament-registration-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,13 +13,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  dummyParticipants,
-  dummyUserNames,
-  findClubBySlug,
-  findTournamentById,
-} from "@/lib/dummy-data";
-import type { TournamentFormat, TournamentStatus } from "@/lib/types/domain";
+import { createClient } from "@/lib/supabase/server";
+import type {
+  ParticipantStatus,
+  TournamentFormat,
+  TournamentParticipant,
+  TournamentStatus,
+} from "@/lib/types/domain";
 
 /** 대회 진행 방식(format)을 한글 라벨로 변환 */
 const FORMAT_LABELS: Record<TournamentFormat, string> = {
@@ -54,13 +58,67 @@ export default async function TournamentDetailPage({
   params: Promise<{ clubSlug: string; tournamentId: string }>;
 }) {
   const { clubSlug, tournamentId } = await params;
+  const supabase = await createClient();
 
-  const club = findClubBySlug(clubSlug);
-  const tournament = findTournamentById(club.id, tournamentId);
+  const { data: club, error: clubError } = await supabase
+    .from("clubs")
+    .select("id, name, slug")
+    .eq("slug", clubSlug)
+    .single();
 
-  const participants = dummyParticipants.filter(
-    (participant) => participant.tournament_id === tournament.id,
+  if (clubError || !club) {
+    notFound();
+  }
+
+  const { data: tournament, error: tournamentError } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", tournamentId)
+    .eq("club_id", club.id)
+    .single();
+
+  if (tournamentError || !tournament) {
+    notFound();
+  }
+
+  const [{ data: isAdmin }, { data: claimsData }, { data: participantRows }] =
+    await Promise.all([
+      supabase.rpc("is_club_admin", { target_club_id: club.id }),
+      supabase.auth.getClaims(),
+      supabase
+        .from("tournament_participants")
+        .select("*, profiles(full_name, username)")
+        .eq("tournament_id", tournament.id)
+        .order("created_at", { ascending: true }),
+    ]);
+
+  const currentUserId = claimsData?.claims?.sub ?? null;
+
+  const participants: TournamentParticipant[] = participantRows ?? [];
+
+  const userNames: Record<string, string> = Object.fromEntries(
+    (participantRows ?? []).map((row) => [
+      row.user_id,
+      row.profiles?.full_name ?? row.profiles?.username ?? "알 수 없음",
+    ]),
   );
+
+  const myParticipant = currentUserId
+    ? participants.find((participant) => participant.user_id === currentUserId)
+    : undefined;
+  const myStatus: ParticipantStatus | null = myParticipant?.status ?? null;
+
+  const registrationOpen =
+    tournament.status === "registration_open" &&
+    (!tournament.registration_deadline ||
+      new Date(tournament.registration_deadline).getTime() > Date.now());
+
+  const pendingParticipants = participants
+    .filter((participant) => participant.status === "pending")
+    .map((participant) => ({
+      id: participant.id,
+      name: userNames[participant.user_id] ?? "알 수 없음",
+    }));
 
   const statusMeta = STATUS_META[tournament.status];
 
@@ -80,19 +138,43 @@ export default async function TournamentDetailPage({
               ` · 최대 ${tournament.max_participants}명`}
           </p>
         </div>
-        <Button asChild variant="outline" className="w-fit">
-          <Link href={`/c/${clubSlug}/tournaments/${tournament.id}/bracket`}>
-            대진표 보기
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && <CloseRegistrationButton tournamentId={tournament.id} />}
+          {!isAdmin && (
+            <TournamentRegistrationAction
+              tournamentId={tournament.id}
+              registrationOpen={registrationOpen}
+              currentStatus={myStatus}
+            />
+          )}
+          <Button asChild variant="outline" className="w-fit">
+            <Link href={`/c/${clubSlug}/tournaments/${tournament.id}/bracket`}>
+              대진표 보기
+            </Link>
+          </Button>
+        </div>
       </div>
+
+      {isAdmin && pendingParticipants.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">승인 대기 중인 참가자</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ParticipantAdminPanel
+              tournamentId={tournament.id}
+              participants={pendingParticipants}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base">참가자 목록</CardTitle>
         </CardHeader>
         <CardContent>
-          <ParticipantList participants={participants} userNames={dummyUserNames} />
+          <ParticipantList participants={participants} userNames={userNames} />
         </CardContent>
       </Card>
     </div>
