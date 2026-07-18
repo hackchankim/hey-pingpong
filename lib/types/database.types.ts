@@ -56,6 +56,54 @@ export type Database = {
           },
         ]
       }
+      club_ratings: {
+        Row: {
+          club_id: string
+          id: string
+          losses: number
+          matches_played: number
+          rating: number
+          updated_at: string
+          user_id: string
+          wins: number
+        }
+        Insert: {
+          club_id: string
+          id?: string
+          losses?: number
+          matches_played?: number
+          rating?: number
+          updated_at?: string
+          user_id: string
+          wins?: number
+        }
+        Update: {
+          club_id?: string
+          id?: string
+          losses?: number
+          matches_played?: number
+          rating?: number
+          updated_at?: string
+          user_id?: string
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_ratings_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "club_ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clubs: {
         Row: {
           created_at: string
@@ -306,6 +354,77 @@ export type Database = {
         }
         Relationships: []
       }
+      rating_history: {
+        Row: {
+          club_id: string
+          created_at: string
+          delta: number
+          id: string
+          match_id: string | null
+          opponent_id: string | null
+          opponent_rating_before: number | null
+          rating_after: number
+          rating_before: number
+          reason: Database["public"]["Enums"]["rating_change_reason"]
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          delta: number
+          id?: string
+          match_id?: string | null
+          opponent_id?: string | null
+          opponent_rating_before?: number | null
+          rating_after: number
+          rating_before: number
+          reason?: Database["public"]["Enums"]["rating_change_reason"]
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          delta?: number
+          id?: string
+          match_id?: string | null
+          opponent_id?: string | null
+          opponent_rating_before?: number | null
+          rating_after?: number
+          rating_before?: number
+          reason?: Database["public"]["Enums"]["rating_change_reason"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rating_history_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rating_history_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rating_history_opponent_id_fkey"
+            columns: ["opponent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rating_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_participants: {
         Row: {
           club_id: string
@@ -465,6 +584,7 @@ export type Database = {
         | "checked_in"
         | "withdrawn"
         | "disqualified"
+      rating_change_reason: "match_result" | "manual_adjustment"
       tournament_format:
         | "round_robin"
         | "single_elimination"
@@ -619,6 +739,7 @@ export const Constants = {
         "withdrawn",
         "disqualified",
       ],
+      rating_change_reason: ["match_result", "manual_adjustment"],
       tournament_format: [
         "round_robin",
         "single_elimination",
@@ -663,3 +784,10 @@ export type MatchUpdate = TablesUpdate<"matches">
 export type MatchGame = Tables<"match_games">
 export type MatchGameInsert = TablesInsert<"match_games">
 export type MatchGameUpdate = TablesUpdate<"match_games">
+
+export type ClubRating = Tables<"club_ratings">
+export type ClubRatingInsert = TablesInsert<"club_ratings">
+export type ClubRatingUpdate = TablesUpdate<"club_ratings">
+
+export type RatingHistory = Tables<"rating_history">
+export type RatingHistoryInsert = TablesInsert<"rating_history">
