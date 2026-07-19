@@ -327,11 +327,13 @@
 - **Zod** - 스키마 검증 라이브러리
 
 ### 🗄️ 백엔드 & 데이터베이스
-- **Supabase** - BaaS (인증, 데이터베이스, 실시간 구독)
-- **PostgreSQL** - 관계형 데이터베이스 (Supabase 포함)
+- **Spring Boot 3.3(LTS) + Kotlin** - 클럽/대회/대진표/랭킹 비즈니스 로직을 전담하는 API 서버, 모노레포 내 `api/` 디렉토리로 Next.js에서 단계적으로 분리 중
+- **Spring Data JPA(Hibernate)** - ORM 및 트랜잭션 처리, 잠금·벌크 처리가 필요한 구간은 네이티브 쿼리로 보완
+- **PostgreSQL** - 관계형 데이터베이스
+- **Supabase Auth** - 회원가입/로그인/OAuth 등 인증 전용으로 유지, Spring Security OAuth2 Resource Server가 발급된 JWT를 검증
 
 ### 🚀 배포 & 호스팅
-- **Vercel** - Next.js 최적화 배포 플랫폼
+- **GCP / AWS** - 프론트엔드(Next.js)와 API 서버(Spring Boot)를 각각 컨테이너로 배포
 
 ### 📦 패키지 관리
 - **npm** - 의존성 관리

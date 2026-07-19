@@ -104,11 +104,59 @@
   - Vercel 배포 파이프라인 구성 및 환경변수 관리 (사용자 Vercel 계정 연동 필요, 다음 호출 이후 진행)
   - 모니터링/로깅 체계 구성 (범위 확정 필요, 다음 호출 이후 진행)
 
+### Phase 5: 백엔드 분리 — Spring Boot(Kotlin) API 서버 이관
+
+`docs/PRD.md` 기술 스택 결정에 따라, 현재 Supabase Postgres RLS + `SECURITY DEFINER` RPC(`create_club`, `join_club_with_code`, `create_tournament_matches`, `record_match_result`)에 있는 핵심 비즈니스 로직을 동일 저장소 내 `api/` 디렉토리(Spring Boot 3.3 LTS + Kotlin, 모노레포)로 전면 재작성해 이관한다. 별도 레포로 분리하지 않는 이유는 도메인별 이관마다 `api/`와 `lib/actions/*.ts` 변경을 한 PR로 묶어 리뷰·롤백하기 위함이며, Kotlin/TS 간 코드·타입 공유는 어차피 불가능해 두 툴체인은 완전히 독립적으로 유지한다(GitHub Actions는 `api/**` path filter로 워크플로우 분리). 인증은 Supabase Auth를 유지(Spring Security OAuth2 Resource Server가 JWT 검증), 인가 판정만 새 서버로 이전한다. 도메인 단위 strangler-fig 방식으로 점진 이관하며, 각 도메인은 `lib/actions/*.ts`의 서버 전용 env 플래그(예: `CLUBS_API_ENABLED`)로 런타임 분기해 `app/`·`components/`는 무변경으로 유지하고 문제 발생 시 플래그만 꺼서 즉시 롤백한다.
+
+- **Task 011: `api/` 모듈 부트스트랩 및 인증/인가 배관** - 우선순위
+  - 저장소 루트에 `api/` 디렉토리 생성 (Gradle Kotlin DSL, 단일 모듈, Spring Boot 3.3 LTS, Java 21, `kotlin("plugin.jpa")`)
+  - Web / Security / OAuth2 Resource Server / Data JPA / PostgreSQL Driver / Flyway / Validation / springdoc-openapi 의존성 구성
+  - GitHub Actions에 `api/**` path filter 워크플로우 추가 (Next.js CI와 상호 트리거되지 않도록 분리)
+  - `supabase/migrations/`에 `app_api`(BYPASSRLS) 전용 Postgres role 생성 마이그레이션 추가, `api/`에 direct connection(session mode) 데이터소스 + HikariCP 구성
+  - Spring Security `issuer-uri` 설정 + `aud: "authenticated"` 커스텀 `OAuth2TokenValidator`가 포함된 `JwtDecoder` 빈 구현
+  - `@CurrentUserId` 애노테이션/`HandlerMethodArgumentResolver`, `GlobalExceptionHandler`(403/404/409 매핑) 구현
+  - Testcontainers(PostgreSQL) + Flyway 통합 테스트 환경 구성
+
+- **Task 012: 클럽 도메인 이관 (`create_club`, `join_club_with_code`)**
+  - Flyway `baseline-on-migrate`로 `clubs`/`club_members` 스키마 baseline 처리
+  - `InviteCodeGenerator`(순수 함수, 재시도 가능한 8자 코드 생성) 및 `ClubService.createClub`(`@Transactional`, 최대 5회 재시도, unique violation 분기) 구현
+  - `JoinClubResult` sealed class 기반 `ClubService.joinClubWithCode` 구현 (banned/already_member 분기)
+  - `POST /clubs`, `POST /clubs/join` 컨트롤러 + `springdoc-openapi` 스펙 확인
+  - `lib/actions/clubs.ts`에 `CLUBS_API_ENABLED` 플래그 분기 추가 (같은 PR 안에서 `api/` 변경과 함께 리뷰)
+  - Supabase 브랜치에서 옛 RPC와 신규 API 응답을 대조하는 패리티 스크립트 작성 및 실행
+  - Playwright MCP로 "클럽 생성 → 다른 계정으로 초대코드 가입" E2E 재검증 (플래그 on 상태)
+
+- **Task 013: 클럽 멤버 관리 이관**
+  - 멤버 목록 조회, 역할 변경, 멤버 내보내기 로직 이관(owner 보호 규칙 유지)
+  - Playwright MCP로 "멤버 관리(역할 변경/내보내기)" E2E 재검증
+
+- **Task 014: 랭킹 도메인 이관 (읽기 전용, 조기 착수 가능)**
+  - `club_ratings`/`rating_history` 조회 API 이관 (별도 쓰기 경로 없어 리스크 낮음)
+  - `RANKING_API_ENABLED` 플래그 분기
+  - Playwright MCP로 랭킹 페이지(순위표/레이팅 추이) E2E 재검증
+
+- **Task 015: 대회/참가자 도메인 이관**
+  - 착수 전 RLS 정책 감사표(USING/WITH CHECK → `AuthorizationService` 메서드 매핑) 작성
+  - `tournaments`/`tournament_participants` CRUD 이관, `BEFORE INSERT OR UPDATE` club_id 트리거는 Postgres에 방어용으로 유지
+  - Playwright MCP로 "대회 생성 → 참가 신청 → 등록 마감" E2E 재검증
+
+- **Task 016: 대진표/경기 도메인 이관 (`create_tournament_matches`, `record_match_result`)**
+  - 자기참조 FK 2단계 벌크 insert/update (`Persistable<UUID>` + `hibernate.jdbc.batch_size` 배치 설정, `JdbcTemplate.batchUpdate` 후속 갱신)
+  - `record_match_result` 트랜잭션 재현: 매치 `FOR UPDATE` 명시적 잠금 → 세트 기록/부전승 처리 → ELO 갱신(승자/패자 `.toString()` 문자열 비교 정렬로 원본 `<` 순서 재현, `UUID.compareTo()` 사용 금지) → 승자/패자 동시 진출 배정 → 대회 완료 판정
+  - `lib/tournament/bracket.ts`, `lib/rating/elo.ts` 순수 함수 Kotlin 포팅
+  - Playwright MCP로 "대진표 생성 → 점수 입력 → 라운드 진행 → 대회 완료 → 랭킹 반영" 전체 플로우 E2E 재검증
+
+- **Task 017: 이관 마무리 및 옛 RPC 정리**
+  - 전 도메인 플래그 production on 후 1~2주 burn-in 관찰
+  - 문제 없음을 확인한 뒤 옛 RPC(`create_club`, `join_club_with_code`, `create_tournament_matches`, `record_match_result`) 삭제 마이그레이션 적용
+  - `npm run build`(Cache Components)로 Server Action의 신규 `getSession()`/fetch 지점이 Suspense 경계 규칙을 위반하지 않는지 최종 회귀 확인
+
 ## 참고
 
 - Phase 4 이후(핸디캡 자동화, 커뮤니티 게시판, 코치 레슨 예약, 구독/결제, 구장 예약)는 `docs/PRD.md`의 "MVP 이후 기능"에 해당하며, 본 로드맵의 스키마가 재작업 없이 확장 가능함을 설계 단계에서 확인함.
+- Phase 5(백엔드 분리)는 기능 추가가 아닌 아키텍처 전환이므로 `docs/PRD.md`의 기능 명세(F001~F022)는 변하지 않으며, 도메인별 이관 완료 시마다 신규 API와 옛 RPC의 동작이 사용자 관점에서 동일함을 Playwright MCP로 재검증한다.
 
 ---
 
-**📅 최종 업데이트**: 2026-07-18
-**📊 진행 상황**: Phase 4 진행 중 (10/11 Tasks 완료, Task 010은 부분 완료)
+**📅 최종 업데이트**: 2026-07-19
+**📊 진행 상황**: Phase 5 대기 중 (10/18 Tasks 완료, Task 010은 부분 완료)
