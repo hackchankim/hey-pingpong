@@ -598,3 +598,44 @@ $$;
 - ELO 계산 공식·K-factor 상수는 `lib/rating/elo.ts`에 정의하되, 클럽별 초기 레이팅은 하드코딩하지
   않고 `clubs.initial_rating`을 참조한다(가입 시 `join_club_with_code`, 경기 시 `record_match_result`
   양쪽에서 참조 가능해야 함).
+
+---
+
+## 성능 점검 이력 (Task 010)
+
+`mcp__supabase__get_advisors`(security/performance)로 발견된 경고를 점검하고, 판정 로직을 바꾸지
+않는 범위에서 안전하게 조치했다. 마이그레이션: `task010_db_performance_optimization`.
+
+### 조치한 것
+
+- **FK 인덱스 8개 추가** (`unindexed_foreign_keys` 해소): `club_ratings.user_id`,
+  `matches.player1_id`/`player2_id`/`winner_id`, `rating_history.match_id`/`opponent_id`,
+  `tournament_participants.user_id`, `tournaments.created_by`. 순수 추가라 기존 쿼리/RLS 동작에
+  영향 없음.
+- **`auth_rls_initplan` 최적화 7건**: `profiles_update_own`, `clubs_insert_owner`,
+  `clubs_delete_owner`, `club_members_delete_admin_or_self`, `participants_delete_admin_or_self`,
+  `participants_insert_self`(재점검 중 추가 발견, 별도 마이그레이션
+  `fix_participants_insert_self_rls_initplan`으로 즉시 처리), 그리고 아래 병합된
+  `participants_update_admin_or_self`에서 `auth.uid()`를 `(select auth.uid())`로 감싸 행마다
+  재평가되지 않고 쿼리당 1회만 평가되도록 함. 판정 조건식 자체는 변경하지 않음(적용 전
+  `pg_policies`로 라이브 정의를 재확인해 일치 검증).
+- **`multiple_permissive_policies` 해소 (tournament_participants UPDATE)**: 기존
+  `participants_update_admin`(관리자 전용)과 `participants_update_self`(본인 철회 전용) 두
+  permissive 정책을 `participants_update_admin_or_self` 하나로 병합. Postgres는 동일 명령에
+  permissive 정책이 여러 개면 OR로 평가하므로, 두 정책을 유지하는 것과 OR로 합친 정책 하나를 두는
+  것은 "누가 무엇을 할 수 있는가" 관점에서 동일하다. 적용 후 실제 유저인 척 `set_config`으로
+  네 가지 케이스(관리자가 타인 상태 변경/성공, 본인이 withdrawn으로 변경/성공, 본인이 withdrawn
+  이외로 변경 시도/거부, 제3자가 타인 상태 변경 시도/거부)를 시뮬레이션해 병합 전후 동작이
+  동일함을 확인했다.
+
+### 조치하지 않은 것 (의도된 설계 또는 이번 스코프 밖)
+
+- **`authenticated_security_definer_function_executable` 6건** (`create_club`,
+  `create_tournament_matches`, `is_club_admin`, `is_club_member`, `join_club_with_code`,
+  `record_match_result`): 전부 `authenticated` 롤이 호출해야 하는 RPC로 의도적으로 열어둔 것.
+- **`unused_index` 7건 → 15건**: 기존 7건(`idx_tournaments_club_id` 등)은 QA 트래픽만 있어서
+  미사용으로 뜨는 것이며 실제 쿼리 패턴과 일치하는 인덱스라 삭제하지 않음. 이번에 추가한 FK
+  인덱스 8개도 아직 트래픽이 없어 동일하게 unused로 표시되는데, 이는 신규 인덱스가 정착되기 전의
+  정상적인 과도기 상태이므로 문제 없음.
+- **`auth_leaked_password_protection` 1건**: SQL로 조치 불가, Supabase 대시보드 Auth 설정에서
+  수동으로 활성화 필요.
