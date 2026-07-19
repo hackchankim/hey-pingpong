@@ -1,14 +1,22 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import type { Match, MatchStatus } from "@/lib/types/domain"
+import type { Match, MatchBracket, MatchStatus } from "@/lib/types/domain"
 
 interface BracketViewProps {
-  /** 표시할 경기 목록 — round 기준으로 그룹핑해 라운드별 카드로 나열한다 */
+  /** 표시할 경기 목록 — bracket(main/winners/losers)으로 먼저 그룹핑한 뒤 round로 나열한다 */
   matches: Match[]
   /** player1_id/player2_id/winner_id -> 표시용 이름 매핑 */
   userNames: Record<string, string>
   className?: string
+}
+
+/** bracket 표시 순서 + 한국어 섹션 라벨(더블 엘리미네이션에서만 여러 섹션이 나타난다) */
+const BRACKET_ORDER: MatchBracket[] = ["winners", "losers", "main"]
+const BRACKET_LABELS: Record<MatchBracket, string> = {
+  winners: "승자조",
+  losers: "패자조",
+  main: "결승",
 }
 
 /** 경기 상태(status)를 한글 라벨 + 배지 스타일로 변환 */
@@ -44,22 +52,22 @@ function getPlayerName(
 }
 
 /**
- * 대회 대진표를 라운드별로 그룹핑해 카드 목록으로 표시하는 컴포넌트.
+ * 대회 대진표를 라운드별로 그룹핑해 카드 목록으로 표시하는 컴포넌트(bracket 한 그룹 내부).
  * 트리 연결선 등 고급 시각화는 다루지 않으며, 이미 계산된 Match[]를 보여주기만 한다.
  */
-export function BracketView({ matches, userNames, className }: BracketViewProps) {
+function RoundColumns({
+  matches,
+  userNames,
+}: {
+  matches: Match[]
+  userNames: Record<string, string>
+}) {
   const roundNumbers = Array.from(new Set(matches.map((match) => match.round))).sort(
     (a, b) => a - b,
   )
 
-  if (roundNumbers.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">표시할 대진 정보가 없습니다.</p>
-    )
-  }
-
   return (
-    <div className={cn("flex gap-4 overflow-x-auto pb-2", className)}>
+    <div className="flex gap-4 overflow-x-auto pb-2">
       {roundNumbers.map((round) => {
         const roundMatches = matches
           .filter((match) => match.round === round)
@@ -112,6 +120,44 @@ export function BracketView({ matches, userNames, className }: BracketViewProps)
                 </Card>
               )
             })}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
+ * 대회 대진표를 bracket(main/winners/losers)으로 먼저 그룹핑한 뒤, 각 그룹 안에서
+ * 라운드별 카드 목록(RoundColumns)을 보여주는 컴포넌트.
+ *
+ * 라운드로빈/싱글엘리미네이션은 모든 경기가 bracket='main' 하나뿐이므로 이 경우
+ * 섹션 제목 없이 기존과 동일하게(단순 라운드 나열) 보여준다 — 더블 엘리미네이션처럼
+ * bracket이 2개 이상 섞여 있을 때만 "승자조"/"패자조"/"결승" 섹션 제목을 붙인다.
+ */
+export function BracketView({ matches, userNames, className }: BracketViewProps) {
+  if (matches.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">표시할 대진 정보가 없습니다.</p>
+    )
+  }
+
+  const presentBrackets = BRACKET_ORDER.filter((bracket) =>
+    matches.some((match) => match.bracket === bracket),
+  )
+  const showBracketSections = presentBrackets.length > 1
+
+  return (
+    <div className={cn("flex flex-col gap-6", className)}>
+      {presentBrackets.map((bracket) => {
+        const bracketMatches = matches.filter((match) => match.bracket === bracket)
+
+        return (
+          <div key={bracket} className="flex flex-col gap-3">
+            {showBracketSections && (
+              <h2 className="text-base font-semibold">{BRACKET_LABELS[bracket]}</h2>
+            )}
+            <RoundColumns matches={bracketMatches} userNames={userNames} />
           </div>
         )
       })}

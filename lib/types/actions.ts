@@ -114,6 +114,12 @@ export interface BracketMatchInput {
   /** 시딩 단계에서는 아직 실제 match id가 없으므로 임시 참조 키로 연결 */
   player1_source_match_ref?: string | null
   player2_source_match_ref?: string | null
+  /**
+   * 더블 엘리미네이션 패자조(losers bracket) 전용: 이 슬롯이 특정 매치의 "승자"가 아니라
+   * "패자"로 채워져야 함을 나타내는 임시 참조 키(예: 승자조에서 패한 선수가 패자조로 진출).
+   */
+  player1_loser_source_match_ref?: string | null
+  player2_loser_source_match_ref?: string | null
   /** 이 경기 자신을 참조하는 다른 경기들이 사용할 임시 키 */
   match_ref: string
   is_bye?: boolean
@@ -159,8 +165,12 @@ export interface RatingChangeSummary {
 
 export interface RecordMatchResultResult {
   match: Match
-  /** 승자가 진출하는 다음 라운드 경기가 갱신된 경우에만 포함 */
-  advanced_match: Match | null
+  /**
+   * 승자/패자가 진출하는 다음 라운드 경기가 갱신된 경우 포함된다(더블 엘리미네이션은
+   * 승자조 진출 + 패자조 진출이 동시에 발생할 수 있어 최대 2건까지 담긴다). 갱신된
+   * 다음 경기가 없으면 빈 배열이다.
+   */
+  advanced_matches: Match[]
   rating_changes: RatingChangeSummary[]
   /** 이 경기 종료로 대회 전체가 완료 처리되었는지 여부 */
   tournament_completed: boolean

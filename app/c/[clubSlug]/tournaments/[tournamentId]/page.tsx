@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CancelTournamentButton } from "@/components/cancel-tournament-button";
 import { CloseRegistrationButton } from "@/components/close-registration-button";
 import { ParticipantAdminPanel } from "@/components/participant-admin-panel";
 import { ParticipantList } from "@/components/participant-list";
@@ -113,12 +114,21 @@ export default async function TournamentDetailPage({
     (!tournament.registration_deadline ||
       new Date(tournament.registration_deadline).getTime() > Date.now());
 
-  const pendingParticipants = participants
-    .filter((participant) => participant.status === "pending")
+  // 관리자 참가자 관리 패널: 승인 대기(pending) + 이미 승인된(registered) 참가자를 함께
+  // 보여준다. registered 참가자도 대회 도중 실격 처리할 수 있어야 하므로 포함한다
+  // (withdrawn/disqualified/checked_in은 더 이상 관리자 액션 대상이 아니므로 제외).
+  const adminParticipants = participants
+    .filter(
+      (participant) => participant.status === "pending" || participant.status === "registered",
+    )
     .map((participant) => ({
       id: participant.id,
       name: userNames[participant.user_id] ?? "알 수 없음",
+      status: participant.status as "pending" | "registered",
     }));
+
+  const canCancelTournament =
+    tournament.status !== "completed" && tournament.status !== "cancelled";
 
   const statusMeta = STATUS_META[tournament.status];
 
@@ -140,6 +150,9 @@ export default async function TournamentDetailPage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isAdmin && <CloseRegistrationButton tournamentId={tournament.id} />}
+          {isAdmin && canCancelTournament && (
+            <CancelTournamentButton tournamentId={tournament.id} />
+          )}
           {!isAdmin && (
             <TournamentRegistrationAction
               tournamentId={tournament.id}
@@ -155,15 +168,15 @@ export default async function TournamentDetailPage({
         </div>
       </div>
 
-      {isAdmin && pendingParticipants.length > 0 && (
+      {isAdmin && adminParticipants.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">승인 대기 중인 참가자</CardTitle>
+            <CardTitle className="text-base">참가자 관리</CardTitle>
           </CardHeader>
           <CardContent>
             <ParticipantAdminPanel
               tournamentId={tournament.id}
-              participants={pendingParticipants}
+              participants={adminParticipants}
             />
           </CardContent>
         </Card>
