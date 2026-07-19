@@ -15,6 +15,7 @@ import { z } from "zod"
 
 import { createClient } from "@/lib/supabase/server"
 import {
+  generateDoubleEliminationBracket,
   generateRoundRobinBracket,
   generateSingleEliminationBracket,
 } from "@/lib/tournament/bracket"
@@ -70,15 +71,12 @@ export async function createTournamentMatches(tournamentId: string): Promise<voi
     throw new Error("대진표를 생성하려면 승인된 참가자가 2명 이상 필요합니다.")
   }
 
-  if (tournament.format === "double_elimination") {
-    // 더블 엘리미네이션 대진표 생성은 이번 스코프(Task007) 밖이다.
-    throw new Error("더블 엘리미네이션 대진표 생성은 아직 지원하지 않습니다.")
-  }
-
   const matches =
     tournament.format === "round_robin"
       ? generateRoundRobinBracket(participantIds)
-      : generateSingleEliminationBracket(participantIds)
+      : tournament.format === "double_elimination"
+        ? generateDoubleEliminationBracket(participantIds)
+        : generateSingleEliminationBracket(participantIds)
 
   const { error } = await supabase.rpc("create_tournament_matches", {
     p_tournament_id: tournament.id,
@@ -89,6 +87,9 @@ export async function createTournamentMatches(tournamentId: string): Promise<voi
 
   if (error) {
     console.error("createTournamentMatches: create_tournament_matches RPC 실패:", error)
+    if (error.message?.includes("tournament already started")) {
+      throw new Error("이미 시작됐거나 종료·취소된 대회는 대진표를 다시 생성할 수 없습니다.")
+    }
     throw new Error("대진표 생성에 실패했습니다. 클럽 관리자 권한을 확인해주세요.")
   }
 

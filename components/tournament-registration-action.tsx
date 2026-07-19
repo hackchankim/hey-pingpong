@@ -3,7 +3,7 @@
 import { useTransition } from "react"
 import { toast } from "sonner"
 
-import { registerParticipant } from "@/lib/actions/tournaments"
+import { registerParticipant, withdrawParticipant } from "@/lib/actions/tournaments"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { ParticipantStatus } from "@/lib/types/domain"
@@ -35,6 +35,25 @@ export function TournamentRegistrationAction({
     })
   }
 
+  const handleWithdraw = () => {
+    if (
+      !window.confirm(
+        "정말 참가 신청을 취소하시겠습니까?\n\n대회가 이미 진행 중이라면 대진표에는 자동으로 반영되지 않습니다 — 진행 중인 경기가 있다면 관리자에게 알려 부전승 처리를 요청해주세요.",
+      )
+    ) {
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        await withdrawParticipant({ tournament_id: tournamentId })
+        toast.success("참가 신청을 취소했습니다.")
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "참가 신청 취소에 실패했습니다.")
+      }
+    })
+  }
+
   if (currentStatus === "pending") {
     return (
       <Badge variant="outline" className="border-transparent bg-muted text-muted-foreground">
@@ -43,7 +62,23 @@ export function TournamentRegistrationAction({
     )
   }
 
-  if (currentStatus === "registered" || currentStatus === "checked_in") {
+  if (currentStatus === "registered") {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge
+          variant="outline"
+          className="border-transparent bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+        >
+          참가 확정
+        </Badge>
+        <Button type="button" variant="outline" size="sm" onClick={handleWithdraw} disabled={isPending}>
+          {isPending ? "처리 중..." : "기권하기"}
+        </Button>
+      </div>
+    )
+  }
+
+  if (currentStatus === "checked_in") {
     return (
       <Badge
         variant="outline"

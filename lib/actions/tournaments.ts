@@ -253,3 +253,49 @@ export async function closeRegistration(tournamentId: string): Promise<void> {
 
   revalidatePath("/c/[clubSlug]/tournaments/[tournamentId]", "page")
 }
+
+const cancelTournamentSchema = z.string().uuid()
+
+/**
+ * 관리자 전용: 대회를 취소 처리한다(status: 'cancelled'). 이미 종료(completed)되었거나
+ * 취소된 대회는 다시 취소할 수 없으므로 update 전에 현재 상태를 먼저 조회해 방어한다.
+ * 취소된 대회는 record_match_result RPC에서도 결과 기록이 거부된다(DB 레벨 이중 방어).
+ */
+export async function cancelTournament(tournamentId: string): Promise<void> {
+  const parsed = cancelTournamentSchema.safeParse(tournamentId)
+  if (!parsed.success) {
+    console.error("cancelTournament 입력 검증 실패:", parsed.error.flatten())
+    throw new Error("입력값을 확인해주세요.")
+  }
+
+  const supabase = await createClient()
+
+  const { data: tournament, error: tournamentError } = await supabase
+    .from("tournaments")
+    .select("status")
+    .eq("id", parsed.data)
+    .single()
+
+  if (tournamentError || !tournament) {
+    console.error("cancelTournament: 대회 조회 실패:", tournamentError)
+    throw new Error("대회를 찾을 수 없습니다.")
+  }
+
+  if (tournament.status === "completed" || tournament.status === "cancelled") {
+    throw new Error("이미 종료되었거나 취소된 대회입니다.")
+  }
+
+  const { data, error } = await supabase
+    .from("tournaments")
+    .update({ status: "cancelled" })
+    .eq("id", parsed.data)
+    .select("id")
+    .single()
+
+  if (error || !data) {
+    console.error("cancelTournament 실패:", error)
+    throw new Error("대회 취소 처리에 실패했습니다. 관리자 권한을 확인해주세요.")
+  }
+
+  revalidatePath("/c/[clubSlug]/tournaments/[tournamentId]", "page")
+}

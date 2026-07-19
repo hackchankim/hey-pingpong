@@ -298,6 +298,8 @@ create index idx_participants_tournament_id on tournament_participants(tournamen
 | player2_id | uuid | null 허용, FK → `profiles.id` | |
 | player1_source_match_id | uuid | null 허용, FK → `matches.id`(자기참조) | 엘리미네이션에서 이 경기 승자가 진출해 올 이전 라운드 경기 |
 | player2_source_match_id | uuid | null 허용, FK → `matches.id`(자기참조) | |
+| player1_loser_source_match_id | uuid | null 허용, FK → `matches.id`(자기참조), `deferrable initially deferred` | 더블 엘리미네이션 패자조 전용 — 이 경기에 배정될 선수가 이전 경기의 **패자**로 진출해 올 경우 그 경기를 가리킴(Task009) |
+| player2_loser_source_match_id | uuid | null 허용, FK → `matches.id`(자기참조), `deferrable initially deferred` | 위와 동일, player2 슬롯 |
 | is_bye | boolean | not null, default `false` | 부전승 슬롯 |
 | status | `match_status` enum (`pending`/`ready`/`in_progress`/`completed`/`walkover`) | not null, default `'pending'` | |
 | winner_id | uuid | null 허용, FK → `profiles.id` | |
@@ -319,7 +321,7 @@ create index idx_participants_tournament_id on tournament_participants(tournamen
 | UPDATE | 직접 UPDATE 정책 없음(점수/승자/캐시 컬럼 동시 일관성 필요) — `record_match_result` RPC 전용. 단, `scheduled_at`/`court_label`처럼 순수 메타데이터 수정은 `is_club_admin(club_id)`가 호출 가능한 별도 RPC(`update_match_schedule` 등)로 제공한다 — Postgres RLS는 행 단위이며 컬럼별 제어가 없으므로 "컬럼 단위 정책"이 아니라 전용 RPC로 화이트리스트를 강제한다 |
 | DELETE | 직접 DELETE 정책 없음 — `create_tournament_matches` RPC 내부에서만(재생성 시 기존 draft 삭제) |
 
-**인덱스**: `club_id`(단독), `tournament_id`(단독), `(tournament_id, round)`(복합 — 라운드별 조회), `player1_source_match_id`/`player2_source_match_id`(진출 갱신 시 역참조 조회).
+**인덱스**: `club_id`(단독), `tournament_id`(단독), `(tournament_id, round)`(복합 — 라운드별 조회), `player1_source_match_id`/`player2_source_match_id`(진출 갱신 시 역참조 조회), `player1_loser_source_match_id`/`player2_loser_source_match_id`(패자 진출 갱신 시 역참조 조회, Task009).
 
 ```sql
 -- 참고용 스니펫

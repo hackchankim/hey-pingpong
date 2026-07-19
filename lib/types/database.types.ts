@@ -213,9 +213,11 @@ export type Database = {
           match_number: number
           player1_games_won: number
           player1_id: string | null
+          player1_loser_source_match_id: string | null
           player1_source_match_id: string | null
           player2_games_won: number
           player2_id: string | null
+          player2_loser_source_match_id: string | null
           player2_source_match_id: string | null
           round: number
           scheduled_at: string | null
@@ -234,9 +236,11 @@ export type Database = {
           match_number: number
           player1_games_won?: number
           player1_id?: string | null
+          player1_loser_source_match_id?: string | null
           player1_source_match_id?: string | null
           player2_games_won?: number
           player2_id?: string | null
+          player2_loser_source_match_id?: string | null
           player2_source_match_id?: string | null
           round: number
           scheduled_at?: string | null
@@ -255,9 +259,11 @@ export type Database = {
           match_number?: number
           player1_games_won?: number
           player1_id?: string | null
+          player1_loser_source_match_id?: string | null
           player1_source_match_id?: string | null
           player2_games_won?: number
           player2_id?: string | null
+          player2_loser_source_match_id?: string | null
           player2_source_match_id?: string | null
           round?: number
           scheduled_at?: string | null
@@ -282,6 +288,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "matches_player1_loser_source_match_id_fkey"
+            columns: ["player1_loser_source_match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "matches_player1_source_match_id_fkey"
             columns: ["player1_source_match_id"]
             isOneToOne: false
@@ -293,6 +306,13 @@ export type Database = {
             columns: ["player2_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_player2_loser_source_match_id_fkey"
+            columns: ["player2_loser_source_match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
             referencedColumns: ["id"]
           },
           {
@@ -791,3 +811,4 @@ export type ClubRatingUpdate = TablesUpdate<"club_ratings">
 
 export type RatingHistory = Tables<"rating_history">
 export type RatingHistoryInsert = TablesInsert<"rating_history">
+export type RatingHistoryUpdate = TablesUpdate<"rating_history">

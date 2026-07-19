@@ -197,6 +197,9 @@ export interface Match {
   /** 엘리미네이션에서 이전 라운드 승자가 여기로 진출함을 나타내는 자기참조 FK */
   player1_source_match_id: string | null
   player2_source_match_id: string | null
+  /** 더블 엘리미네이션 패자조: 이전 라운드 패자가 여기로 진출함을 나타내는 자기참조 FK */
+  player1_loser_source_match_id: string | null
+  player2_loser_source_match_id: string | null
   is_bye: boolean
   status: MatchStatus
   winner_id: string | null
@@ -220,6 +223,8 @@ export interface MatchInsert {
   player2_id?: string | null
   player1_source_match_id?: string | null
   player2_source_match_id?: string | null
+  player1_loser_source_match_id?: string | null
+  player2_loser_source_match_id?: string | null
   is_bye?: boolean
   status?: MatchStatus
   winner_id?: string | null
